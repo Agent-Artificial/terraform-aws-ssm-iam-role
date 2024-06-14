@@ -1,5 +1,6 @@
 module "label" {
-  source     = "git::https://github.com/cloudposse/terraform-terraform-label.git?ref=0.1.3"
+  #  source     = "git::https://github.com/cloudposse/terraform-terraform-label.git?ref=0.1.3"
+  source     = "../terraform-terraform-label"
   attributes = var.attributes
   delimiter  = var.delimiter
   name       = var.name
@@ -9,7 +10,13 @@ module "label" {
 }
 
 locals {
-  policy_only = length(var.assume_role_arns) > 0 ? 1 : 0
+  policy_only = 0
+  #length(var.assume_role_arns) > 0 ? 1 : 0
+  params =  formatlist("arn:aws:ssm:%s:%s:parameter/%s",
+    var.region,
+    var.account_id,
+    var.ssm_parameters)
+
 }
 
 data "aws_kms_key" "default" {
@@ -17,27 +24,40 @@ data "aws_kms_key" "default" {
 }
 
 data "aws_iam_policy_document" "assume_role" {
-  count = local.policy_only
-
   statement {
     effect  = "Allow"
     actions = ["sts:AssumeRole"]
 
     principals {
       type        = "Service"
-      identifiers = ["ec2.amazonaws.com"]
+      identifiers = ["ssm.amazonaws.com"]
     }
-  }
-
-  statement {
-    effect  = "Allow"
-    actions = ["sts:AssumeRole"]
-
-    principals {
-      type        = "AWS"
-      identifiers = ["${var.assume_role_arns}"]
+    condition {
+      test = "StringEquals"
+      variable = "aws:SourceAccount"
+      values = [var.account_id]
     }
+    condition {
+      test = "ArnEquals"
+      variable = "aws:SourceArn"
+      values = ["arn:aws:ssm:${var.region}:${var.account_id}:*"]
+    }
+    
+  # statement {
+  #   effect  = "Allow"
+  #   actions = ["sts:AssumeRole"]
+
+  #   principals {
+  #     type        = "AWS"
+  #     #identifiers = var.assume_role_arns
+  #   }
+  # }
   }
+}
+
+
+output test {
+  value = local.params
 }
 
 data "aws_iam_policy_document" "default" {
@@ -48,8 +68,8 @@ data "aws_iam_policy_document" "default" {
   }
 
   statement {
-    actions   = ["${var.ssm_actions}"]
-    resources = ["${formatlist("arn:aws:ssm:%s:%s:parameter/%s", var.region, var.account_id, var.ssm_parameters)}"]
+    actions   = var.ssm_actions
+    resources = local.params
     effect    = "Allow"
   }
 

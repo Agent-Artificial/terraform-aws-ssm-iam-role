@@ -45,10 +45,10 @@ variable "kms_key_reference" {
   description = "The Key ID, Key ARN, Key Alias Name, or Key Alias ARN of the KMS key which will encrypt/decrypt SSM secret strings"
 }
 
-variable "assume_role_arns" {
-  type        = list(string)
-  description = "List of ARNs to allow assuming the role. Could be AWS services or accounts, Kops nodes, IAM users or groups"
-}
+#variable "assume_role_arns" {
+#  type        = list(string)
+#  description = "List of ARNs to allow assuming the role. Could be AWS services or accounts, Kops nodes, IAM users or groups"
+#}
 
 variable "ssm_actions" {
   type        = list(string)
